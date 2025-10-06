@@ -1,0 +1,5 @@
+{
+  "name": "AI Course Architect",
+  "description": "An AI agent that automatically generates complete, 2-hour lesson websites based on a given topic. It simulates a workflow of Redator, Designer, Developer, and QA agents to produce a didactic, structured, and visually appealing course.",
+  "requestFramePermissions": []
+}
