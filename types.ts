@@ -19,12 +19,14 @@ export interface CourseSection {
     code: string;
   };
   imageSuggestion?: string;
+  generatedImageBase64?: string;
 }
 
 export enum AgentStage {
   Redator = 'Redator',
   Designer = 'Designer',
   Developer = 'Developer',
+  Illustrator = 'Illustrator',
   QA = 'QA',
 }
 

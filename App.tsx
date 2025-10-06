@@ -1,7 +1,7 @@
 
-import React, { useState, useCallback } from 'react';
-import { generateCourseContent } from './services/geminiService';
-import { CourseContent, AgentStage, AgentStatus } from './types';
+import React, { useState } from 'react';
+import { generateCourseContent, generateImage } from './services/geminiService';
+import { CourseContent, AgentStage, AgentStatus, CourseModule, CourseSection } from './types';
 import Header from './components/Header';
 import TopicInput from './components/TopicInput';
 import AgentStatusDisplay from './components/AgentStatusDisplay';
@@ -18,33 +18,31 @@ const App: React.FC = () => {
     { stage: AgentStage.Redator, status: 'pending', name: 'Redator Agent' },
     { stage: AgentStage.Designer, status: 'pending', name: 'Designer Agent' },
     { stage: AgentStage.Developer, status: 'pending', name: 'Developer Agent' },
+    { stage: AgentStage.Illustrator, status: 'pending', name: 'Illustrator Agent' },
     { stage: AgentStage.QA, status: 'pending', name: 'QA Agent' },
   ];
 
-  const simulateAgentProgress = useCallback(() => {
-    let currentStageIndex = 0;
-    setAgentStatuses(
-      initialAgentStatuses.map((s, i) =>
-        i === 0 ? { ...s, status: 'processing' } : s
-      )
-    );
-
-    const interval = setInterval(() => {
-      currentStageIndex++;
-      if (currentStageIndex < initialAgentStatuses.length) {
-        setAgentStatuses(prev =>
-          prev.map((s, i) => {
-            if (i < currentStageIndex) return { ...s, status: 'completed' };
-            if (i === currentStageIndex) return { ...s, status: 'processing' };
-            return s;
-          })
-        );
-      } else {
-        clearInterval(interval);
-      }
-    }, 1500); // Simulate each agent taking time
-    return interval;
-  }, []);
+  const updateAgentStatuses = (completedStages: AgentStage[], processingStage?: AgentStage, errorStage?: AgentStage) => {
+    setAgentStatuses(prev => {
+      return initialAgentStatuses.map(agent => {
+        if (completedStages.includes(agent.stage)) {
+          return { ...agent, status: 'completed' };
+        }
+        if (agent.stage === processingStage) {
+          return { ...agent, status: 'processing' };
+        }
+        if (agent.stage === errorStage) {
+          return { ...agent, status: 'error' };
+        }
+        // Keep previous error states
+        const previousAgent = prev.find(p => p.stage === agent.stage);
+        if (previousAgent?.status === 'error') {
+            return previousAgent;
+        }
+        return { ...agent, status: 'pending' };
+      });
+    });
+  };
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
@@ -55,26 +53,54 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setCourseContent(null);
-    const progressInterval = simulateAgentProgress();
+    setAgentStatuses(initialAgentStatuses);
+    updateAgentStatuses([], AgentStage.Redator);
 
     try {
-      const content = await generateCourseContent(topic);
-      setCourseContent(content);
-      setAgentStatuses(prev =>
-        prev.map(s => ({ ...s, status: 'completed' }))
-      );
+      // Step 1: Generate Textual Content
+      const contentStructure = await generateCourseContent(topic);
+      updateAgentStatuses([AgentStage.Redator, AgentStage.Designer, AgentStage.Developer], AgentStage.Illustrator);
+      setCourseContent(contentStructure);
+
+      // Step 2: Generate Images
+      const imageGenerationPromises: Promise<void>[] = [];
+      const updatedContent: CourseContent = JSON.parse(JSON.stringify(contentStructure));
+
+      updatedContent.modules.forEach((module: CourseModule) => {
+        module.sections.forEach((section: CourseSection) => {
+          if (section.imageSuggestion) {
+            const promise = generateImage(section.imageSuggestion)
+              .then(imageBase64 => {
+                section.generatedImageBase64 = imageBase64;
+              })
+              .catch(err => {
+                console.warn(`Could not generate image for suggestion: "${section.imageSuggestion}". Skipping.`, err);
+              });
+            imageGenerationPromises.push(promise);
+          }
+        });
+      });
+
+      await Promise.all(imageGenerationPromises);
+
+      setCourseContent(updatedContent);
+      updateAgentStatuses([AgentStage.Redator, AgentStage.Designer, AgentStage.Developer, AgentStage.Illustrator], AgentStage.QA);
+      
+      // Step 3: Final QA simulation
+      await new Promise(resolve => setTimeout(resolve, 500));
+      updateAgentStatuses([AgentStage.Redator, AgentStage.Designer, AgentStage.Developer, AgentStage.Illustrator, AgentStage.QA]);
+
     } catch (err) {
       console.error('Error generating course:', err);
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
       setError(`Failed to generate course content. ${errorMessage}`);
-      setAgentStatuses(prev =>
-        prev.map(s => (s.status === 'processing' ? { ...s, status: 'error' } : s))
-      );
+      const currentProcessingAgent = agentStatuses.find(s => s.status === 'processing')?.stage || AgentStage.Redator;
+      updateAgentStatuses([], undefined, currentProcessingAgent);
     } finally {
-      clearInterval(progressInterval);
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans flex flex-col">
@@ -102,7 +128,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {!isLoading && courseContent && (
+        {courseContent && (
           <div className="w-full max-w-6xl mt-8">
             <CourseDisplay content={courseContent} />
           </div>

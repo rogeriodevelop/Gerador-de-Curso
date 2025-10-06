@@ -26,10 +26,10 @@ const createHtmlFile = (content: CourseContent): string => {
                     <pre class="bg-gray-900 rounded-md p-4 text-sm overflow-x-auto"><code class="language-${section.codeExample.language}">${section.codeExample.code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
                   </div>
                 ` : ''}
-                ${section.imageSuggestion ? `
+                ${section.generatedImageBase64 ? `
                   <div class="mt-6 p-4 bg-gray-700/50 rounded-lg text-center">
-                    <p class="text-gray-400 italic">Image Suggestion: "${section.imageSuggestion}"</p>
-                    <img src="https://picsum.photos/seed/${encodeURIComponent(section.imageSuggestion)}/800/400" alt="${section.imageSuggestion}" class="mt-2 rounded-md mx-auto" />
+                    <p class="text-gray-400 italic">Illustration for: "${section.imageSuggestion}"</p>
+                    <img src="data:image/jpeg;base64,${section.generatedImageBase64}" alt="${section.imageSuggestion}" class="mt-2 rounded-md mx-auto" />
                   </div>
                 ` : ''}
               </div>
@@ -71,10 +71,10 @@ const CourseSectionDisplay: React.FC<{ section: CourseSection }> = ({ section })
     <h4 className="text-2xl font-semibold text-cyan-400">{section.title}</h4>
     <div className="mt-4 prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: section.content }} />
     {section.codeExample && <CodeBlock language={section.codeExample.language} code={section.codeExample.code} />}
-    {section.imageSuggestion && (
+    {section.generatedImageBase64 && (
       <div className="mt-6 p-4 bg-gray-700/50 rounded-lg text-center">
-        <p className="text-gray-400 italic">Image Suggestion: "{section.imageSuggestion}"</p>
-        <img src={`https://picsum.photos/seed/${encodeURIComponent(section.imageSuggestion)}/800/400`} alt={section.imageSuggestion} className="mt-2 rounded-md mx-auto" />
+        <p className="text-gray-400 italic">Illustration for: "{section.imageSuggestion}"</p>
+        <img src={`data:image/jpeg;base64,${section.generatedImageBase64}`} alt={section.imageSuggestion} className="mt-2 rounded-md mx-auto max-h-[400px] w-auto" />
       </div>
     )}
   </div>

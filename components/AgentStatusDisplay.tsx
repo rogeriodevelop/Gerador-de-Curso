@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { AgentStatus } from '../types';
-import { CheckIcon, CogIcon, DocumentIcon, ErrorIcon, PencilIcon, CodeBracketIcon, ShieldCheckIcon, LoadingSpinner } from './icons';
+import { CheckIcon, CogIcon, DocumentIcon, ErrorIcon, PencilIcon, CodeBracketIcon, ShieldCheckIcon, LoadingSpinner, PhotoIcon } from './icons';
 
 const getIconForStage = (stage: string, status: string) => {
     const iconClass = "w-8 h-8";
@@ -13,6 +13,7 @@ const getIconForStage = (stage: string, status: string) => {
         case 'Redator': return <PencilIcon className={iconClass + " text-gray-500"} />;
         case 'Designer': return <DocumentIcon className={iconClass + " text-gray-500"} />;
         case 'Developer': return <CodeBracketIcon className={iconClass + " text-gray-500"} />;
+        case 'Illustrator': return <PhotoIcon className={iconClass + " text-gray-500"} />;
         case 'QA': return <ShieldCheckIcon className={iconClass + " text-gray-500"} />;
         default: return <CogIcon className={iconClass + " text-gray-500"} />;
     }
